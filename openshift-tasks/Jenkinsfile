@@ -6,7 +6,7 @@ podTemplate(
   containers: [
     containerTemplate(
       name: "jnlp",
-      image: "docker-registry.default.svc:5000/tmb-jenkins/jenkins-agent-appdev",
+      image: "docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-agent-appdev",
       resourceRequestMemory: "1Gi",
       resourceLimitMemory: "2Gi",
       resourceRequestCpu: "1",
@@ -21,8 +21,6 @@ podTemplate(
     def nexusUrl = "nexus3.gpte-hw-cicd.svc.cluster.local:8081"
     def nexusPath = "/repository/all-maven-public"
     def sonarqubeUrl = "sonarqube.gpte-hw-cicd.svc.cluster.local:9000"
-    def namespace="tmb-tasks-dev"
-    def guid="tmb"
 
     // Checkout Source Code.
     stage('Checkout Source') {
@@ -77,12 +75,12 @@ podTemplate(
         echo "Building OpenShift container image tasks:${devTag}"
 
         // Use the locally created WAR file
-        sh "oc start-build tasks --follow --from-file=./target/openshift-tasks.war -n ${guid}-tasks-dev"
+        sh "oc start-build tasks --follow --from-file=./target/openshift-tasks.war -n ${GUID}-tasks-dev"
 
         // Or the one saved to Nexus
-        // sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${guid}-tasks-dev"
+        // sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${GUID}-tasks-dev"
 
-        openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: "${namespace}", namespace: "${namespace}", srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
+        openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: "${GUID}-tasks-dev", namespace: "${GUID}-tasks-dev", srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
 
       }
 
@@ -95,16 +93,16 @@ podTemplate(
         //      Make sure the application is running and ready before proceeding
   
         // Update the Image on the Development Deployment Config
-        sh "oc set image dc/tasks tasks=docker-registry.default.svc:5000/${namespace}/tasks:${devTag} -n ${namespace}"
+        sh "oc set image dc/tasks tasks=docker-registry.default.svc:5000/${GUID}-tasks-dev/tasks:${devTag} -n ${GUID}-tasks-dev"
 
         // Update the Config Map which contains the users for the Tasks application
-        sh "oc delete configmap tasks-config -n ${namespace} --ignore-not-found=true"
-        sh "oc create configmap tasks-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${namespace}"
+        sh "oc delete configmap tasks-config -n ${GUID}-tasks-dev --ignore-not-found=true"
+        sh "oc create configmap tasks-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${GUID}-tasks-dev"
 
         // Deploy the development application.
-        openshiftDeploy depCfg: 'tasks', namespace: namespace, verbose: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyDeployment depCfg: 'tasks', namespace: namespace, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyService namespace: namespace, svcName: 'tasks', verbose: 'false'
+        openshiftDeploy depCfg: 'tasks', namespace: ${GUID}-tasks-dev, verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: 'tasks', namespace: ${GUID}-tasks-dev, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: ${GUID}-tasks-dev, svcName: 'tasks', verbose: 'false'
   
       }
 
@@ -112,10 +110,10 @@ podTemplate(
       stage('Copy Image to Nexus container registry') {
         echo "Copy image to Nexus container registry"
 
-        sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${guid}-tasks-dev/tasks:${devTag} docker://${nexusUrl}/tasks:${devTag}"
+        sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${GUID}-tasks-dev/tasks:${devTag} docker://${nexusUrl}/tasks:${devTag}"
 
         // Tag the built image with the production tag.
-        openshiftTag alias: 'false', destStream: 'tasks', destTag: prodTag, destinationNamespace: namespace, namespace: namespace, srcStream: 'tasks', srcTag: devTag, verbose: 'false'
+        openshiftTag alias: 'false', destStream: 'tasks', destTag: prodTag, destinationNamespace: ${GUID}-tasks-dev, namespace: ${GUID}-tasks-dev, srcStream: 'tasks', srcTag: devTag, verbose: 'false'
 
 
       }
@@ -131,7 +129,7 @@ podTemplate(
         //      Deploy into the other application
         //      Make sure the application is running and ready before proceeding
 
-        activeApp = sh(returnStdout: true, script: "oc get route tasks -n ${guid}-tasks-prod -o jsonpath='{ .spec.to.name }'").trim()
+        activeApp = sh(returnStdout: true, script: "oc get route tasks -n i${GUID}-tasks-prod -o jsonpath='{ .spec.to.name }'").trim()
         if (activeApp == "tasks-green") {
           destApp = "tasks-blue"
         }
@@ -139,27 +137,27 @@ podTemplate(
         echo "Destination Application: ${destApp}"
 
         // Update the Image on the Production Deployment Config
-        sh "oc set image dc/${destApp} ${destApp}=docker-registry.default.svc:5000/${namespace}/tasks:${prodTag} -n ${guid}-tasks-prod"
+        sh "oc set image dc/${destApp} ${destApp}=docker-registry.default.svc:5000/${GUID}-tasks-dev/tasks:${prodTag} -n ${GUID}-tasks-prod"
 
         // Update the Config Map which contains the users for the Tasks application
-        sh "oc delete configmap ${destApp}-config -n ${guid}-tasks-prod --ignore-not-found=true"
-        sh "oc create configmap ${destApp}-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${guid}-tasks-prod"
+        sh "oc delete configmap ${destApp}-config -n ${GUID}-tasks-prod --ignore-not-found=true"
+        sh "oc create configmap ${destApp}-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${GUID}-tasks-prod"
 
         // Deploy the inactive application.
-        openshiftDeploy depCfg: destApp, namespace: "${guid}-tasks-prod", verbose: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyDeployment depCfg: destApp, namespace: "${guid}-tasks-prod", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyService namespace: "${guid}-tasks-prod", svcName: destApp, verbose: 'false'
+        openshiftDeploy depCfg: destApp, namespace: "${GUID}-tasks-prod", verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: destApp, namespace: "${GUID}-tasks-prod", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: "${GUID}-tasks-prod", svcName: destApp, verbose: 'false'
 
 	// Set environment variable 
-        sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${guid}-tasks-dev"
-        sh "oc set env dc VERSION='${prodTag} (${destApp})' -n ${guid}-tasks-prod"
+        sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${GUID}-tasks-dev"
+        sh "oc set env dc VERSION='${prodTag} (${destApp})' -n ${GUID}-tasks-prod"
 
       }
 
       stage('Switch over to new Version') {
         echo "Switching Production application to ${destApp}."
 
-        sh 'oc patch route tasks -n '+guid+'-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
+        sh 'oc patch route tasks -n ${GUID}-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
 
       }
     }
