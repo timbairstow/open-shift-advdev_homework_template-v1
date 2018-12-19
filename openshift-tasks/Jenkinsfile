@@ -147,8 +147,8 @@ podTemplate(
         openshiftVerifyService namespace: '${guid}-tasks-prod', svcName: destApp, verbose: 'false'
 
 	// Set environment variable 
-        oc set env dc VERSION='${devTag} (tasks-dev)' -n ${guid}-tasks-dev
-        oc set env dc VERSION='${prodTag} (${destApp})' -n ${guid}-tasks-prod
+        sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${guid}-tasks-dev"
+        sh "oc set env dc VERSION='${prodTag} (${destApp})' -n ${guid}-tasks-prod"
 
       }
 
