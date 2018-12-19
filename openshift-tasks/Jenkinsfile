@@ -69,14 +69,19 @@ podTemplate(
       // Publish the built war file to Nexus
       stage('Publish to Nexus') {
         echo "Publish to Nexus"
-        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://${nexusUrl}${nexusPath}"
+        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://${nexusUrl}/repository/releases"
       }
 
       // Build the OpenShift Image in OpenShift and tag it.
       stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
-        sh "oc start-build tasks --follow --from-file=http://${nexusUrl}${nexusPath}/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${namespace}"
+        // Use the locally created WAR file
+        sh "oc start-build tasks --follow --from-file=./target/openshift-tasks.war -n ${guid}-tasks-dev"
+
+        // Or the one saved to Nexus
+        // sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${guid}-tasks-dev"
+
         openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: "${namespace}", namespace: "${namespace}", srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
 
       }
@@ -107,7 +112,7 @@ podTemplate(
       stage('Copy Image to Nexus container registry') {
         echo "Copy image to Nexus container registry"
 
-        sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${guid}-tasks-dev/tasks:${devTag} docker://${nexusUrl}${nexusPath}/${guid}-tasks:${devTag}"
+        sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${guid}-tasks-dev/tasks:${devTag} docker://${nexusUrl}/tasks:${devTag}"
 
         // Tag the built image with the production tag.
         openshiftTag alias: 'false', destStream: 'tasks', destTag: prodTag, destinationNamespace: namespace, namespace: namespace, srcStream: 'tasks', srcTag: devTag, verbose: 'false'
@@ -130,8 +135,8 @@ podTemplate(
         if (activeApp == "tasks-green") {
           destApp = "tasks-blue"
         }
-        echo "Active Application:      " + activeApp
-        echo "Destination Application: " + destApp
+        echo "Active Application: ${activeApp}"
+        echo "Destination Application: ${destApp}"
 
         // Update the Image on the Production Deployment Config
         sh "oc set image dc/${destApp} ${destApp}=docker-registry.default.svc:5000/${namespace}/tasks:${prodTag} -n ${guid}-tasks-prod"
@@ -141,9 +146,9 @@ podTemplate(
         sh "oc create configmap ${destApp}-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${guid}-tasks-prod"
 
         // Deploy the inactive application.
-        openshiftDeploy depCfg: destApp, namespace: '${guid}-tasks-prod', verbose: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyDeployment depCfg: destApp, namespace: '${guid}-tasks-prod', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyService namespace: '${guid}-tasks-prod', svcName: destApp, verbose: 'false'
+        openshiftDeploy depCfg: destApp, namespace: "${guid}-tasks-prod", verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: destApp, namespace: "${guid}-tasks-prod", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: "${guid}-tasks-prod", svcName: destApp, verbose: 'false'
 
 	// Set environment variable 
         sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${guid}-tasks-dev"
