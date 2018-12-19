@@ -76,7 +76,7 @@ podTemplate(
       stage('Build and Tag OpenShift Image') {
         echo "Building OpenShift container image tasks:${devTag}"
 
-        sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/${guid}/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${namespace}"
+        sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${namespace}"
         openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: "${namespace}", namespace: "${namespace}", srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
 
       }
