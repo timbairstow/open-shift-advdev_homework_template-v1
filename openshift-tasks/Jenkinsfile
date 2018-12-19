@@ -97,10 +97,9 @@ podTemplate(
         sh "oc create configmap tasks-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${namespace}"
 
         // Deploy the development application.
-        // Replace xyz-tasks-dev with the name of your production project
-        openshiftDeploy depCfg: 'tasks', namespace: "${namespace}", verbose: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyDeployment depCfg: 'tasks', namespace: "${namespace}", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyService namespace: "${namespace}", svcName: 'tasks', verbose: 'false'
+        openshiftDeploy depCfg: 'tasks', namespace: namespace, verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: 'tasks', namespace: namespace, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: namespace, svcName: 'tasks', verbose: 'false'
   
       }
 
@@ -155,7 +154,7 @@ podTemplate(
       stage('Switch over to new Version') {
         echo "Switching Production application to ${destApp}."
 
-        sh 'oc patch route tasks -n ${guid}-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
+        sh 'oc patch route tasks -n '+guid+'-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
 
       }
     }
