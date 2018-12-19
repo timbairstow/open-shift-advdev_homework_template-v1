@@ -41,11 +41,10 @@ items:
       type: "Git"
       git:
         uri: "${REPO}"
-        contextDir: "openshift-tasks"
     strategy:
       type: "JenkinsPipeline"
       jenkinsPipelineStrategy:
-        jenkinsfilePath: Jenkinsfile
+        jenkinsfilePath: openshift-tasks/Jenkinsfile
 kind: List
 metadata: []" | oc create -f - -n ${GUID}-jenkins
 
