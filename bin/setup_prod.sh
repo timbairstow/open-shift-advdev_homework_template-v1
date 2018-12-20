@@ -13,7 +13,7 @@ echo "Setting up Tasks Production Environment in project ${GUID}-tasks-prod"
 oc policy add-role-to-group system:image-puller system:serviceaccounts:${GUID}-tasks-prod -n ${GUID}-tasks-dev
 oc policy add-role-to-user edit system:serviceaccount:${GUID}-jenkins:jenkins -n ${GUID}-tasks-prod
 
-# Allow central pipeline access
+## Allow central pipeline access
 oc policy add-role-to-user edit system:serviceaccount:gpte-jenkins:jenkins -n ${GUID}-tasks-prod
 
 # Create Blue Application

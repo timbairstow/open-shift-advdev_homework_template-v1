@@ -12,7 +12,7 @@ echo "Setting up Tasks Development Environment in project ${GUID}-tasks-dev"
 # Set up Dev Project
 oc policy add-role-to-user edit system:serviceaccount:${GUID}-jenkins:jenkins -n ${GUID}-tasks-dev
 
-# Also allow the homework instance of jenkins
+## Also allow the homework instance of jenkins
 oc policy add-role-to-user edit system:serviceaccount:gpte-jenkins:jenkins -n ${GUID}-tasks-dev
 
 # Set up Dev Application
