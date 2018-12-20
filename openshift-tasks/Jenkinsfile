@@ -76,12 +76,12 @@ podTemplate(
         echo "Building OpenShift container image tasks:${devTag}"
 
         // Use the locally created WAR file
-        sh "oc start-build tasks --follow --from-file=./target/openshift-tasks.war -n ${GUID}-tasks-dev"
+        //sh "oc start-build tasks --follow --from-file=./target/openshift-tasks.war -n ${GUID}-tasks-dev"
 
         // Or the one saved to Nexus
-        // sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${GUID}-tasks-dev"
+         sh "oc start-build tasks --follow --from-file=http://${nexusUrl}/repository/releases/org/jboss/quickstarts/eap/tasks/${version}/tasks-${version}.war -n ${GUID}-tasks-dev"
 
-        openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: "${GUID}-tasks-dev", namespace: "${GUID}-tasks-dev", srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
+        openshiftTag alias: 'false', destStream: 'tasks', destTag: devTag, destinationNamespace: 'tmb-tasks-dev', namespace: 'tmb-tasks-dev', srcStream: 'tasks', srcTag: 'latest', verbose: 'true'
 
       }
 
