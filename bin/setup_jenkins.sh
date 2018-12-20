@@ -38,7 +38,7 @@ items:
     name: "tasks-pipeline"
   spec:
     source:
-      contextDir: /openshift-tasks/
+      contextDir: openshift-tasks/
       type: "Git"
       git:
         uri: "${REPO}"
