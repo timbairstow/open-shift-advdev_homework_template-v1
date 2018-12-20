@@ -152,7 +152,7 @@ podTemplate(
       stage('Switch over to new Version') {
         echo "Switching Production application to ${destApp}."
 
-        sh 'oc patch route tasks -n ${GUID}-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
+        sh 'oc patch route tasks -n '+GUID+'-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
 
         // Set environment variable
         sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${GUID}-tasks-dev"
