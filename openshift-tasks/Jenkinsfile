@@ -19,7 +19,6 @@ podTemplate(
     // settings for our Nexus installation
     def mvnCmd = "mvn -s ../nexus_settings.xml"
     def nexusUrl = "nexus3.gpte-hw-cicd.svc.cluster.local:8081"
-    def nexusPath = "/repository/all-maven-public"
     def sonarqubeUrl = "sonarqube.gpte-hw-cicd.svc.cluster.local:9000"
 
     // Checkout Source Code.
@@ -148,16 +147,16 @@ podTemplate(
         openshiftVerifyDeployment depCfg: destApp, namespace: "${GUID}-tasks-prod", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
         openshiftVerifyService namespace: "${GUID}-tasks-prod", svcName: destApp, verbose: 'false'
 
-	// Set environment variable 
-        sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${GUID}-tasks-dev"
-        sh "oc set env dc VERSION='${prodTag} (${destApp})' -n ${GUID}-tasks-prod"
-
       }
 
       stage('Switch over to new Version') {
         echo "Switching Production application to ${destApp}."
 
         sh 'oc patch route tasks -n ${GUID}-tasks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
+
+        // Set environment variable
+        sh "oc set env dc VERSION='${devTag} (tasks-dev)' -n ${GUID}-tasks-dev"
+        sh "oc set env dc VERSION='${prodTag} (${destApp})' -n ${GUID}-tasks-prod"
 
       }
     }
