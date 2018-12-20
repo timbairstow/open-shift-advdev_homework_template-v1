@@ -99,9 +99,9 @@ podTemplate(
         sh "oc create configmap tasks-config --from-file=./configuration/application-users.properties --from-file=./configuration/application-roles.properties -n ${GUID}-tasks-dev"
 
         // Deploy the development application.
-        openshiftDeploy depCfg: 'tasks', namespace: ${GUID}-tasks-dev, verbose: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyDeployment depCfg: 'tasks', namespace: ${GUID}-tasks-dev, replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
-        openshiftVerifyService namespace: ${GUID}-tasks-dev, svcName: 'tasks', verbose: 'false'
+        openshiftDeploy depCfg: 'tasks', namespace: "${GUID}-tasks-dev", verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: 'tasks', namespace: "${GUID}-tasks-dev", replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: "${GUID}-tasks-dev", svcName: 'tasks', verbose: 'false'
   
       }
 
@@ -112,7 +112,7 @@ podTemplate(
         sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123 docker://docker-registry.default.svc.cluster.local:5000/${GUID}-tasks-dev/tasks:${devTag} docker://${nexusUrl}/tasks:${devTag}"
 
         // Tag the built image with the production tag.
-        openshiftTag alias: 'false', destStream: 'tasks', destTag: prodTag, destinationNamespace: ${GUID}-tasks-dev, namespace: ${GUID}-tasks-dev, srcStream: 'tasks', srcTag: devTag, verbose: 'false'
+        openshiftTag alias: 'false', destStream: 'tasks', destTag: prodTag, destinationNamespace: "${GUID}-tasks-dev", namespace: "${GUID}-tasks-dev", srcStream: 'tasks', srcTag: devTag, verbose: 'false'
 
 
       }
@@ -128,7 +128,7 @@ podTemplate(
         //      Deploy into the other application
         //      Make sure the application is running and ready before proceeding
 
-        activeApp = sh(returnStdout: true, script: "oc get route tasks -n i${GUID}-tasks-prod -o jsonpath='{ .spec.to.name }'").trim()
+        activeApp = sh(returnStdout: true, script: "oc get route tasks -n ${GUID}-tasks-prod -o jsonpath='{ .spec.to.name }'").trim()
         if (activeApp == "tasks-green") {
           destApp = "tasks-blue"
         }
